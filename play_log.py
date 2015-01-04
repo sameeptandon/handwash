@@ -1,6 +1,7 @@
 import numpy as np
 import sys, os
 import cv2
+import skimage
 
 def getFileNum(img_name):
   tokens = img_name.split("_")
@@ -45,28 +46,38 @@ def upsampleDepthImage(img):
 
 data_dir = sys.argv[1]
 img_files = getFileList(data_dir, "img")
-dep_files = getFileList(data_dir, "depth")
 
 for frame_count in range(len(img_files)):
   img_data = cv2.imread(img_files[frame_count])
-  depth_data = np.genfromtxt(dep_files[frame_count], delimiter=",", dtype=np.int32)
-  
   #depth_img = depthDataToImage(depth_data);
   #depth_img = upsampleDepthImage(depth_img);
   #depth_data = depthImageToData(depth_img)
 
+  """
   gray = cv2.cvtColor(img_data, cv2.COLOR_BGR2GRAY)
   sift = cv2.SURF()
   kp = sift.detect(gray)
   sift_img = cv2.drawKeypoints(gray,kp);
   cv2.imshow("sift", sift_img)
+  """
+  #kernel = np.ones((7,7),np.uint8)
+  #img_data2 = cv2.erode(img_data,kernel,iterations = 1)
+  #img_data2 = cv2.cvtColor(img_data2, cv2.COLOR_BGR2GRAY)
+  img_data2 = cv2.cvtColor(img_data, cv2.COLOR_BGR2GRAY)
+  from skimage.morphology import disk
+  from skimage.filter.rank import gradient
+  from skimage.filter import canny, sobel, roberts, scharr, gaussian_filter, threshold_adaptive, threshold_isodata, prewitt
+  #img_data2 = gaussian_filter(img_data2, 1.0)
+  img_data2 = canny(img_data2, 1.0)
+  #img_data2[img_data2 > 0.05] = 1
 
   img_data_copy = np.array(img_data)
-  img_data[:,:,:] = 0
-  img_data[depth_data[:,1], depth_data[:,0], :] = img_data_copy[depth_data[:,1], depth_data[:,0], :]
+  #img_data[:,:,:] = 0
+  #img_data[depth_data[:,1], depth_data[:,0], :] = img_data_copy[depth_data[:,1], depth_data[:,0], :]
 
   cv2.imshow("img", img_data)
-  cv2.waitKey(5)
+  cv2.imshow("img2", img_data2 / (0.0 + np.max(img_data2)))
+  cv2.waitKey(50)
 
 
 

@@ -51,60 +51,37 @@ def upsampleDepthImageFast(img):
   return ret
 
 background_dir = sys.argv[2]
-background_depth_files = getFileList(background_dir, "rawdepth")
-bg_depth_img = np.zeros((240,320))
-#NUM_BACKGROUND_FILES = len(background_depth_files) / 2
-NUM_BACKGROUND_FILES = 5
+background_rgb_files = getFileList(background_dir, "img")
+bg_rgb_img = np.zeros((720,1280,3))
+NUM_BACKGROUND_FILES = 15
 for frame_count in range(NUM_BACKGROUND_FILES):
-  print frame_count
-  depth_data = np.genfromtxt(background_depth_files[frame_count], delimiter=',', dtype=np.int32)
-  depth_img = depthDataToImage(depth_data, shape=(240,320))
-  cv2.imshow("bg", depth_img / 3000.0)
-  cv2.waitKey(5)
-  bg_depth_img = np.maximum(bg_depth_img, depth_img)
+  img = cv2.imread(background_rgb_files[frame_count])
+  bg_rgb_img += img
 
-bg_depth_show = cv2.resize(bg_depth_img, (1280,960))
-cv2.imshow("background", bg_depth_show / 3000)
-cv2.waitKey(50)
+bg_rgb_img /= NUM_BACKGROUND_FILES
+cv2.imshow("background", bg_rgb_img / 255.0 )
+cv2.waitKey(0)
 
 data_dir = sys.argv[1]
 img_files = getFileList(data_dir, "img")
-dep_files = getFileList(data_dir, "rawdepth")
-depth_img_ref = bg_depth_img
+dep_files = getFileList(data_dir, "img")
+img_ref = bg_rgb_img
 
 for frame_count in range(len(img_files)):
   img_data = cv2.imread(img_files[frame_count])
-  depth_data = np.genfromtxt(dep_files[frame_count], delimiter=",", dtype=np.int32)
-
-  #img_data_copy = np.array(img_data)
-  #img_data[:,:,:] = 0
-  #img_data[depth_data[:,1], depth_data[:,0], :] = img_data_copy[depth_data[:,1], depth_data[:,0], :]
-
-  depth_img = depthDataToImage(depth_data, shape=(240,320))
-  #depth_img = upsampleDepthImageFast(depth_img)
-
   print frame_count
-  depth_img[depth_img > 500] = 0
-  med = depth_img - depth_img_ref
-  med[np.logical_and(med > -100, depth_img_ref !=0)] = 0
-  med[depth_img == 0] = 0
-  #med[depth_img_ref == 0] = 0
-  #med[med < -100] = 0
-  #med[med > 700] = 0
-  depth_img[med == 0] = 0
-  med = cv2.resize(med, (1280,960))
+  med = np.abs(img_data- img_ref)
+  med = np.sum(med**2, axis=-1)**(1./2)
+  print med
+  med[med < 50] = 0
+  print med.shape
+  img_data[med == 0] = 0
   
-  cv2.imshow("data", -med / 800.0)
-  cv2.imshow("data2", depth_img / 500.0)
+  cv2.imshow("data", med / 255.0)
+  cv2.imshow("img", img_data)
   cv2.waitKey(5)
   
-  """
-  depth_img[depth_img > 4000] = 0
-  depth_img = cv2.resize(depth_img, (1280,960))
-  #cv2.imshow("img", img_data)
-  cv2.imshow("data", depth_img / 4000.0)
-  cv2.waitKey(5)
-  """
+
 
 
 
