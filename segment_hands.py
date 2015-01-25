@@ -74,6 +74,7 @@ depth_img_ref = bg_depth_img
 
 for frame_count in range(len(img_files)):
   img_data = cv2.imread(img_files[frame_count])
+  print dep_files[frame_count]
   depth_data = np.genfromtxt(dep_files[frame_count], delimiter=",", dtype=np.int32)
 
   #img_data_copy = np.array(img_data)
@@ -84,13 +85,11 @@ for frame_count in range(len(img_files)):
   #depth_img = upsampleDepthImageFast(depth_img)
 
   print frame_count
-  depth_img[depth_img > 500] = 0
   med = depth_img - depth_img_ref
-  med[np.logical_and(med > -100, depth_img_ref !=0)] = 0
+  med[depth_img_ref == 0] = 0
   med[depth_img == 0] = 0
-  #med[depth_img_ref == 0] = 0
-  #med[med < -100] = 0
-  #med[med > 700] = 0
+  med[med > -100] = 0
+  med[depth_img > 500] = 0
   depth_img[med == 0] = 0
   med = cv2.resize(med, (1280,960))
   
