@@ -44,6 +44,18 @@ def trainWaterDetector(data_dir, bin_size=10, cell_occupancy = 0.5):
   hist_data[ hist_data > 0 ] = 1
   return hist_data
 
+def water_zone_hist(depth_img, zone_area, bin_size=10):
+  f = computePixInWaterZone(depth_img, zone_area)
+  mask = f > 0
+  px, py = np.nonzero(mask)
+  return np.histogram2d(px,py,bins=(240/bin_size, 320/bin_size),range=[[0,240],[0,320]])
+
+def computePixInWaterZone(depth_img, zone_area):
+  c = np.array(depth_img)
+  c[zone_area == 0] = 0
+  c[np.abs(zone_area-c) > 50] = 0
+  c[c > 0] = 1
+  return c
 
 def getFileNum(img_name):
   tokens = img_name.split("_")
@@ -78,17 +90,25 @@ water_hist = trainWaterDetector(bg_water_dir,
     bin_size = bin_size, 
     cell_occupancy = cell_occupancy)
 
+water_zone = np.loadtxt(sys.argv[2])
+
 water_hist_viz = cv2.resize(water_hist, (500, 500))
 cv2.imshow("train", water_hist_viz/ np.max(water_hist_viz))
 cv2.waitKey(50)
 
-data_dir = sys.argv[2]
+data_dir = sys.argv[3]
 img_files = getFileList(data_dir, "img")
 dep_files = getFileList(data_dir, "rawdepth")
 
 
 for frame_count in range(5, len(img_files)):
   img_data = cv2.imread(img_files[frame_count])
+  depth_data = np.genfromtxt(dep_files[frame_count], delimiter=",", dtype=np.int32)
+  depth_img = depthDataToImage(depth_data, shape=(240,320))
+
+  water_zone_data = water_zone_hist(depth_img, water_zone, bin_size=20)[0]
+  water_zone_data[ water_zone_data / 20**2 < 0.5] = 0
+  water_zone_data[water_zone_data > 0] = 1
 
   img_data2 = blue_filter(img_data)
   hist_data = blue_hist(img_data, bin_size=bin_size)[0] 
@@ -99,12 +119,15 @@ for frame_count in range(5, len(img_files)):
   water_locs[water_hist == 0] = 0
 
   if (np.sum(water_locs) > np.sum(water_hist) / 10):
-    print "water"
     cv2.putText(img_data, "water detected", (200, 200), cv2.FONT_HERSHEY_PLAIN, 5.0, (0,0,255))
   
+  if (np.sum(water_zone_data) > 0):
+    cv2.putText(img_data, "hand in water zone", (200, 400), cv2.FONT_HERSHEY_PLAIN, 5.0, (0,0,255))
  
 
   cv2.imshow("img", img_data)
+  cv2.imshow("pix_water_zone", cv2.resize(water_zone_data, (500, 500)))
+  cv2.imshow("trained_water_zone", water_zone / np.max(water_zone))
   #cv2.imshow("img2", img_data2)
   cv2.imshow("water", cv2.resize(water_locs, (500,500)))
   #cv2.imshow("depth", depth_img / np.max(depth_img))

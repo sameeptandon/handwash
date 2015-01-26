@@ -21,8 +21,8 @@ def depthDataToImage(data, shape=(720,1280)):
 background_dir = sys.argv[1]
 background_depth_files = getFileList(background_dir, "rawdepth")
 bg_depth_img = np.zeros((240,320))
-#NUM_BACKGROUND_FILES = len(background_depth_files) / 2
-NUM_BACKGROUND_FILES = 5
+NUM_BACKGROUND_FILES = len(background_depth_files) / 2
+#NUM_BACKGROUND_FILES = 5
 for frame_count in range(NUM_BACKGROUND_FILES):
   print frame_count
   depth_data = np.genfromtxt(background_depth_files[frame_count], delimiter=',', dtype=np.int32)
@@ -40,7 +40,7 @@ img_files = getFileList(data_dir, "img")
 dep_files = getFileList(data_dir, "rawdepth")
 depth_img_ref = bg_depth_img
 
-NUM_ZONE_FILES = 5
+NUM_ZONE_FILES = len(img_files) / 2
 water_zone = np.zeros((240,320))
 for frame_count in range(NUM_ZONE_FILES):
   img_data = cv2.imread(img_files[frame_count])
@@ -63,5 +63,5 @@ for frame_count in range(NUM_ZONE_FILES):
   cv2.waitKey(5)
   
 cv2.imshow("water_zone", water_zone / np.max(water_zone))
-cv2.waitKey(50)
+cv2.waitKey(0)
 np.savetxt(sys.argv[3], water_zone)
